@@ -9,32 +9,80 @@
 #include <vector>
 #include <sstream>
 using namespace std;
+// the nodeNum in the graph
 
-const int nodeNum=5;
-const int maxHop=100;
+//the maxHop represent the two node not connect directly
+const int maxHop=1000;
 
-int graph[][nodeNum]={
-    {0,1,maxHop,1,1},
-    {1,0,1,maxHop,maxHop},
-    {maxHop,1,0,1,1},
-    {1,maxHop,1,0,maxHop},
-    {1,maxHop,1,maxHop,0}
+class MultiPathDijsktr{
+private:
+    int nodeNum;
+    char *node;
+    int **graph;
+public:
+    MultiPathDijsktr(const int nodeNum,char *node,int *graph);
+    ~MultiPathDijsktr();
+    vector<int> getAdjacent(int index);
+    vector < vector<int> > MultiPathDijkstra(int index);
+    vector<vector<string>> translatePreToPath(vector< vector<int> >pre,int index);
+    void printMultiPath(vector< vector<string> > path);
+    
    
-
 };
 
-vector<int> getAdjacent(int index){
+MultiPathDijsktr::MultiPathDijsktr(int nodeNum,char *node,int *graph){
+   
+    this->nodeNum=nodeNum;
+    this->node=new char[nodeNum];
+    this->graph=new int*[nodeNum];
+    
+    for(int i=0;i<nodeNum;i++){
+        this->node[i]=node[i];
+    }
+    for(int i=0;i<nodeNum;i++){
+        this->graph[i]=new int[nodeNum];
+        for(int j=0;j<nodeNum;j++){
+            this->graph[i][j]=*(graph+i*nodeNum+j);
+        }
+    }
+    
+    
+}
+MultiPathDijsktr::~MultiPathDijsktr(){
+    delete []node;
+    node=NULL;
+    for(int i=0;i<nodeNum;i++){
+        delete []graph[i];
+        graph[i]=NULL;
+    }
+}
+
+
+//the adjacent matrix to represent the graph
+/**
+ function: 
+    get the adjacent nodes' index of the current node
+ parameters:
+    index: the index of the current node
+ */
+vector<int> MultiPathDijsktr::getAdjacent(int index){
     vector<int> ajacent;
     for(int i=0;i<nodeNum;i++){
-        if(graph[index][i]<maxHop&&graph[index][i]!=0){
+        if(graph[index][i]!=maxHop&&graph[index][i]!=0){
             ajacent.push_back(i);
         }
     }
     return ajacent;
     
 }
-//PreTable
-vector < vector<int> > MultiPathDijkstra(int index){
+/**
+ function:
+    get the shortest multi preNode to the currentNode of all the other nodes
+ parameters:
+    index: the index of the current node
+ 
+ */
+vector < vector<int> > MultiPathDijsktr::MultiPathDijkstra(int index){
     
     if(index<0){
         cout<<"index error"<<endl;
@@ -84,7 +132,7 @@ vector < vector<int> > MultiPathDijkstra(int index){
             
             if(dist[i]<minDist){
                 
-                index=i;
+                index=static_cast<int>(i);
                 
                 minDist=dist[i];
             
@@ -103,7 +151,14 @@ vector < vector<int> > MultiPathDijkstra(int index){
     return  preTbale;
 }
 
-vector<vector<string>> translatePreToPath(vector< vector<int> >pre,int index){
+/**
+ function:
+    translate the multi shortest pretable to multi paths
+ parameters:
+    index: the index of the current node
+ 
+ */
+vector<vector<string>> MultiPathDijsktr::translatePreToPath(vector< vector<int> >pre,int index){
     vector<vector<string>> path(nodeNum);
     vector<bool> isChoiced(nodeNum,false);
     int count =0;
@@ -113,20 +168,21 @@ vector<vector<string>> translatePreToPath(vector< vector<int> >pre,int index){
     
     while(count<nodeNum){
         
-        for(int i=0;i<pre.size();i++){
+        for(vector<int>::size_type i=0;i<pre.size();i++){
             if(isChoiced[i])
                 continue;
-            int j,k=0;
+            vector<int>::size_type j,k=0;
             for(j=0;j<pre[i].size();j++){
                 int preIndex=pre[i][j];
+                char nodeName=node[preIndex];
                 stringstream stream;
-                stream<<pre[i][j];
+                stream<<nodeName;
                 if(isChoiced[preIndex]){
                     if(preIndex==index){
                         path[i].push_back(stream.str());
                     }else{
                         for(int k=0;k<path[preIndex].size();k++){
-                            path[i].push_back(path[preIndex][k]+"   "+stream.str());
+                            path[i].push_back(path[preIndex][k]+"--->"+stream.str());
                         }
                     }
                     k++;
@@ -142,24 +198,54 @@ vector<vector<string>> translatePreToPath(vector< vector<int> >pre,int index){
         
     }
     
+    for(vector<int>::size_type i=0;i<path.size();i++){
+        for(vector<int>::size_type j=0;j<path[i].size();j++){
+            stringstream sstream;
+            sstream<<node[i];
+            path[i][j]=path[i][j]+"--->"+sstream.str();
+            
+        }
+    }
+    
     return path;
     
 }
 
-int main(){
-    vector< vector<int> > preTable=MultiPathDijkstra(0);
-    for(int i=0;i<preTable.size();i++){
-        for(int j=0;j<preTable[i].size();j++){
-            cout<<preTable[i][j]<<" ";
-        }
-        cout<<endl;
-    }
-    
-    vector< vector<string> > path=translatePreToPath(preTable, 0);
+void MultiPathDijsktr::printMultiPath(vector< vector<string> > path){
     for(int i=0;i<path.size();i++){
-        for(int j=0;j<path[i].size();j++){
-            cout<<path[i][j]<<",";
-        }
-        cout<<endl;
-    }
+                if(path[i].size()==0)
+                    continue;
+                for(int j=0;j<path[i].size();j++){
+                    if(j<path[i].size()-1)
+                        cout<<path[i][j]<<",";
+                    else
+                        cout<<path[i][j];
+                }
+                cout<<endl;
+            }
+}
+
+int main(){
+    
+    const int nodeNum=5;
+  
+    char node[]={'A','B','C','D','E'};
+    
+    
+    int graph[5][5]={
+        {0,1,maxHop,1,1},
+        {1,0,1,maxHop,maxHop},
+        {maxHop,1,0,1,1},
+        {1,maxHop,1,0,maxHop},
+        {1,maxHop,1,maxHop,0}
+    };
+    
+    
+    MultiPathDijsktr mp(nodeNum,node,*graph);
+    
+    vector< vector<int> > preTable=mp.MultiPathDijkstra(0);
+    
+    vector< vector<string> > path=mp.translatePreToPath(preTable, 0);
+    mp.printMultiPath(path);
+
 }
